@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EOC Weather Alerts</title>
+<script src="./config.js"></script>
+<style>
+html,body{margin:0;height:100%;background:#0b0f14;color:#e8eef5;font-family:"Avenir Next","Segoe UI",system-ui,sans-serif;overflow:hidden}
+body.list{overflow:auto}
+#bar{display:flex;align-items:stretch;height:100%;min-height:44px;max-height:64px}
+body.list #bar{display:none}
+#tag{flex:none;display:flex;flex-direction:column;justify-content:center;padding:0 14px;background:#b3261e;font-weight:800;font-size:13px;letter-spacing:.1em;white-space:nowrap;z-index:2}
+#tag small{font-weight:600;font-size:10px;letter-spacing:.06em;opacity:.9}
+#tag.calm{background:#1f6f43}
+#tag.err{background:#5a6472}
+#view{flex:1;overflow:hidden;position:relative;display:flex;align-items:center;border-top:1px solid #2a3644;border-bottom:1px solid #2a3644;background:#0e141c}
+#track{display:flex;white-space:nowrap;will-change:transform;animation:scroll linear infinite}
+#view:hover #track{animation-play-state:paused}
+#track.still{animation:none;padding-left:16px}
+@keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.it{display:inline-flex;align-items:center;gap:8px;padding:0 22px;font-size:15px;border-right:1px solid #2a3644}
+.ev{font-weight:800;text-transform:uppercase;letter-spacing:.03em}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.sev-Extreme .dot,.sev-Severe .dot{background:#ff3b30}.sev-Extreme .ev,.sev-Severe .ev{color:#ff6b60}
+.sev-Moderate .dot{background:#ff9500}.sev-Moderate .ev{color:#ffb040}
+.sev-Minor .dot,.sev-Unknown .dot{background:#ffcc00}.sev-Minor .ev,.sev-Unknown .ev{color:#ffdd55}
+.loc{font-size:10px;font-weight:800;letter-spacing:.1em;padding:2px 6px;border-radius:4px;background:#ffcc00;color:#111}
+.area{color:#cfd9e4}.until{color:#9fb0c3;font-size:13px}
+#list{display:none;padding:12px 14px;max-width:1000px;margin:0 auto}
+body.list #list{display:block}
+#list h1{font-size:15px;letter-spacing:.04em;text-transform:uppercase;margin:0 0 4px}
+#list .meta{font-size:11px;color:#9fb0c3;margin-bottom:10px}
+details{border:1px solid #232e3b;border-left-width:5px;border-radius:8px;background:#121922;margin-bottom:8px;padding:9px 12px}
+details.sev-Extreme,details.sev-Severe{border-left-color:#ff3b30}details.sev-Moderate{border-left-color:#ff9500}details.sev-Minor,details.sev-Unknown{border-left-color:#ffcc00}
+summary{cursor:pointer;font-size:14px}
+summary .ev{margin-right:6px}
+details p{white-space:pre-wrap;font-size:13px;color:#cfd9e4;line-height:1.4;margin:8px 0 0}
+</style>
+</head>
+<body>
+<div id="bar"><div id="tag" class="err">WEATHER ALERTS<small id="count">Loading</small></div><div id="view"><div id="track" class="still"></div></div></div>
+<div id="list"><h1 id="lt"></h1><div class="meta" id="lm"></div><div id="cards"></div></div>
+<script>
+const cfg = Object.assign({ alertArea: "FL", localCounty: "Okeechobee", tickerSpeed: 70 }, window.RADAR_CONFIG || {});
+const q = new URLSearchParams(location.search);
+if (q.get("area")) cfg.alertArea = q.get("area").toUpperCase();
+if (q.get("speed")) cfg.tickerSpeed = Number(q.get("speed")) || cfg.tickerSpeed;
+const national = cfg.alertArea === "US";
+// National feed is long, so by default it only shows Severe and Extreme. Override with ?min=Minor|Moderate|Severe|Extreme
+const RANK = { Extreme: 4, Severe: 3, Moderate: 2, Minor: 1, Unknown: 0 };
+const minRank = RANK[q.get("min")] ?? (national ? 3 : 0);
+if (q.get("view") === "list") document.body.classList.add("list");
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const tf = new Intl.DateTimeFormat([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+const now = new Intl.DateTimeFormat([], { hour: "numeric", minute: "2-digit", timeZoneName: "short" });
+const where = national ? "United States" : cfg.alertArea === "FL" ? "Florida" : cfg.alertArea;
+let lastKey = null;
+const isLocal = (a) => !!cfg.localCounty && (a.areaDesc || "").toLowerCase().includes(cfg.localCounty.toLowerCase());
+const shortArea = (s) => { const parts = String(s || "").split(";").map((x) => x.trim()).filter(Boolean); return parts.length > 4 ? parts.slice(0, 4).join(", ") + ` +${parts.length - 4} more` : parts.join(", "); };
+
+function render(alerts) {
+  const tag = $("tag");
+  tag.className = alerts.length ? "" : "calm";
+  $("count").textContent = alerts.length ? `${alerts.length} active · ${where}` : where;
+  const key = alerts.map((a) => a.id).join("|");
+  if (key !== lastKey) {
+    lastKey = key;
+    const track = $("track");
+    if (!alerts.length) { track.className = "still"; track.style.animationDuration = ""; track.innerHTML = `<span class="it">No active National Weather Service alerts for ${esc(where)}</span>`; }
+    else {
+      const html = alerts.map((a) => `<span class="it sev-${esc(a.severity)}"><span class="dot"></span>${isLocal(a) ? '<span class="loc">LOCAL</span>' : ""}<span class="ev">${esc(a.event)}</span><span class="area">${esc(shortArea(a.areaDesc))}</span>${a.ends ? `<span class="until">until ${esc(tf.format(new Date(a.ends)))}</span>` : ""}</span>`).join("");
+      track.className = ""; track.innerHTML = html + html; // doubled so the loop is seamless
+      requestAnimationFrame(() => { track.style.animationDuration = Math.max(10, track.scrollWidth / 2 / cfg.tickerSpeed) + "s"; });
+    }
+    $("cards").innerHTML = alerts.length ? alerts.map((a) => `<details class="sev-${esc(a.severity)}"><summary>${isLocal(a) ? '<span class="loc">LOCAL</span> ' : ""}<span class="ev">${esc(a.event)}</span> ${esc(shortArea(a.areaDesc))}${a.ends ? ` <span class="until">until ${esc(tf.format(new Date(a.ends)))}</span>` : ""}</summary><p><b>${esc(a.headline)}</b></p><p>${esc(a.description)}</p>${a.instruction ? `<p><b>${esc(a.instruction)}</b></p>` : ""}</details>`).join("") : "<p>No active alerts.</p>";
+  }
+  $("lt").textContent = `Active NWS alerts · ${where}`;
+  $("lm").textContent = `${alerts.length} active · Updated ${now.format(new Date())} · Source: National Weather Service`;
+}
+async function load() {
+  try {
+    const url = "https://api.weather.gov/alerts/active?" + (national ? "status=actual" : `area=${encodeURIComponent(cfg.alertArea)}`);
+    const r = await fetch(url, { headers: { Accept: "application/geo+json" }, cache: "no-store" });
+    if (!r.ok) throw new Error(r.status);
+    const alerts = (await r.json()).features.map((f) => Object.assign({}, f.properties, { ends: f.properties.ends || f.properties.expires }))
+      .filter((a) => (RANK[a.severity] ?? 0) >= minRank && (!a.ends || new Date(a.ends) > new Date()))
+      .sort((a, b) => (isLocal(b) - isLocal(a)) || ((RANK[b.severity] ?? 0) - (RANK[a.severity] ?? 0)) || (new Date(b.sent) - new Date(a.sent)));
+    render(alerts);
+  } catch (e) {
+    if (lastKey === null) { $("tag").className = "err"; $("count").textContent = "Feed unavailable"; $("track").className = "still"; $("track").innerHTML = '<span class="it">The NWS alert feed could not be reached. Retrying automatically.</span>'; }
+    else { $("count").textContent = "Feed delayed"; }
+  }
+}
+load(); setInterval(load, 2 * 60000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
+</script>
+</body>
+</html>

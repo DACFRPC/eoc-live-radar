@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EOC Forecast</title>
+<script src="./config.js"></script>
+<style>
+html,body{margin:0;min-height:100%;background:#0b0f14;color:#e8eef5;font-family:"Avenir Next","Segoe UI",system-ui,sans-serif}
+main{padding:14px 16px 18px;max-width:1100px;margin:0 auto}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin-bottom:12px}
+h1{font-size:15px;letter-spacing:.04em;text-transform:uppercase;margin:0}
+#meta{font-size:11px;color:#9fb0c3;text-align:right}
+#now{display:flex;align-items:center;gap:16px;padding:14px 16px;border-radius:12px;background:linear-gradient(135deg,#16324f,#121922);border:1px solid #2a3644}
+#now img{width:72px;height:72px;border-radius:10px;flex:none}
+#nowTemp{font-size:54px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+#nowText{font-size:17px;font-weight:600}
+#nowSub{font-size:12px;color:#b9c6d4;margin-top:3px}
+h2{font-size:11px;color:#9fb0c3;letter-spacing:.12em;text-transform:uppercase;margin:16px 0 6px}
+#hours{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
+.hr{flex:none;width:62px;text-align:center;padding:8px 4px;border-radius:10px;background:#121922;border:1px solid #232e3b;font-size:11px;color:#b9c6d4}
+.hr b{display:block;font-size:17px;color:#e8eef5;margin:3px 0}
+.rain{color:#5db7ff}
+#days{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.day{display:flex;gap:10px;align-items:center;padding:9px 10px;border-radius:10px;background:#121922;border:1px solid #232e3b}
+.day.night{background:#0f151d}
+.day img{width:44px;height:44px;border-radius:8px;flex:none}
+.day .t{font-size:22px;font-weight:700;min-width:48px;text-align:right;font-variant-numeric:tabular-nums}
+.day .n{font-weight:700;font-size:13px}
+.day .s{font-size:12px;color:#b9c6d4;line-height:1.25}
+.day .b{flex:1;min-width:0}
+#err{padding:12px;border:1px solid #ff6b60;border-radius:8px;background:#3a1210;font-size:13px}
+footer{margin-top:14px;font-size:10px;color:#7f8fa1}
+</style>
+</head>
+<body>
+<main>
+  <header><h1 id="title">Forecast</h1><div id="meta">Loading</div></header>
+  <div id="err" hidden></div>
+  <section id="now" hidden><img id="nowIcon" alt=""><div><div id="nowTemp"></div></div><div><div id="nowText"></div><div id="nowSub"></div></div></section>
+  <h2>Next 12 hours</h2><div id="hours"></div>
+  <h2>7 day outlook</h2><div id="days"></div>
+  <footer>Source: National Weather Service point forecast (api.weather.gov). Refreshes every 15 minutes.</footer>
+</main>
+<script>
+const cfg = Object.assign({ forecastName: "Okeechobee", forecastPoint: [27.2439, -80.8298] }, window.RADAR_CONFIG || {});
+const q = new URLSearchParams(location.search);
+if (q.get("point")) cfg.forecastPoint = q.get("point").split(",").map(Number);
+if (q.get("name")) cfg.forecastName = q.get("name");
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const hourFmt = new Intl.DateTimeFormat([], { hour: "numeric" });
+const timeFmt = new Intl.DateTimeFormat([], { hour: "numeric", minute: "2-digit", timeZoneName: "short" });
+const pop = (p) => p.probabilityOfPrecipitation && p.probabilityOfPrecipitation.value ? p.probabilityOfPrecipitation.value : 0;
+const get = (u) => fetch(u, { headers: { Accept: "application/geo+json" }, cache: "no-store" }).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); });
+const img = (p, cls) => p.icon ? `<img ${cls || ""} src="${esc(p.icon)}" alt="" onerror="this.style.display='none'">` : "";
+$("title").textContent = cfg.forecastName + " forecast";
+let urls = null;
+async function load() {
+  try {
+    if (!urls) { const pt = (await get(`https://api.weather.gov/points/${cfg.forecastPoint[0]},${cfg.forecastPoint[1]}`)).properties; urls = { daily: pt.forecast, hourly: pt.forecastHourly, office: pt.cwa }; }
+    const [daily, hourly] = await Promise.all([get(urls.daily), get(urls.hourly)]);
+    const hrs = hourly.properties.periods, days = daily.properties.periods, now = hrs[0];
+    $("now").hidden = false;
+    $("nowIcon").src = now.icon || ""; $("nowIcon").onerror = () => { $("nowIcon").style.display = "none"; };
+    $("nowTemp").textContent = now.temperature + "°";
+    $("nowText").textContent = now.shortForecast;
+    $("nowSub").textContent = `Wind ${now.windDirection || ""} ${now.windSpeed || ""}  ·  Rain chance ${pop(now)}%`;
+    $("hours").innerHTML = hrs.slice(1, 13).map((h) => `<div class="hr">${esc(hourFmt.format(new Date(h.startTime)))}<b>${esc(h.temperature)}°</b><span class="rain">${pop(h)}%</span><br>${esc(h.windSpeed || "")}</div>`).join("");
+    $("days").innerHTML = days.map((d) => `<div class="day${d.isDaytime ? "" : " night"}" title="${esc(d.detailedForecast)}">${img(d)}<div class="b"><div class="n">${esc(d.name)}</div><div class="s">${esc(d.shortForecast)}${pop(d) ? ` · <span class="rain">${pop(d)}%</span>` : ""}</div></div><div class="t">${esc(d.temperature)}°</div></div>`).join("");
+    $("meta").textContent = `NWS ${urls.office || ""}  ·  Updated ${timeFmt.format(new Date())}`;
+    $("err").hidden = true;
+  } catch (e) {
+    $("err").hidden = false; $("err").textContent = "The NWS forecast could not be loaded right now. Retrying automatically.";
+    $("meta").textContent = "Not updated"; urls = urls && urls.daily ? urls : null;
+  }
+}
+load(); setInterval(load, 15 * 60000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
+</script>
+</body>
+</html>

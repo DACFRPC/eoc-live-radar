@@ -20,4 +20,11 @@ window.RADAR_CONFIG = {
   lastFrameHoldMs: 1800,   // pause on the newest frame before the loop restarts
   refreshMinutes: 5,       // how often new radar is pulled
   staleAfterMinutes: 20,   // show a DELAYED badge if the newest scan is older than this
+
+  // ---- Forecast page (forecast.html) and warnings ticker (alerts.html)
+  forecastName: "Okeechobee",
+  forecastPoint: [27.2439, -80.8298],   // latitude, longitude of the forecast location
+  alertArea: "FL",                      // two-letter state for the ticker, or "US" for national
+  localCounty: "Okeechobee",            // alerts naming this county are pinned first and tagged LOCAL
+  tickerSpeed: 70,                      // ticker scroll speed, pixels per second
 };

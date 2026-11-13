@@ -21,3 +21,12 @@ products for life-safety decisions.
 Rebuild from source (only needed to change the code): in the repository root run
   npm install
   npm run build
+
+More pages (plain HTML, same config.js)
+---------------------------------------
+forecast.html   NWS point forecast: now, next 12 hours, 7 day outlook.
+                Options: ?point=27.2439,-80.8298&name=Okeechobee
+alerts.html     Scrolling ticker of active NWS alerts. Made for a thin strip (about 56 px tall).
+                Options: ?area=FL (state) or ?area=US (national, Severe and Extreme only)
+                         ?min=Minor|Moderate|Severe|Extreme   ?speed=70   ?view=list (full list with details)
+Both read api.weather.gov directly from the viewer's browser and refresh on their own.
