@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>EOC Live Radar</title>
+<script src="./config.js"></script>
+<script type="module" src="/src/main.js"></script>
+</head>
+<body>
+<div id="map"></div>
+
+<header id="top">
+  <div id="brand"><span id="title"></span><span id="sub">Live NEXRAD radar</span></div>
+  <div id="status" class="loading"><span class="dot"></span><span id="statusText">LOADING</span></div>
+</header>
+
+<aside id="legend" aria-label="Radar intensity">
+  <div class="bar"></div>
+  <div class="ticks"><span>Light</span><span>Moderate</span><span>Heavy</span><span>Extreme</span></div>
+</aside>
+
+<footer id="bar">
+  <button id="play" aria-label="Pause">&#10074;&#10074;</button>
+  <div id="clock"><div id="time">--:--</div><div id="ago">&nbsp;</div></div>
+  <input id="scrub" type="range" min="0" max="11" step="1" value="11" aria-label="Radar frame">
+  <label class="mini">Radar<input id="opacity" type="range" min="0" max="100" value="75" aria-label="Radar opacity"></label>
+  <button id="warn" class="chip on" aria-pressed="true">Warnings</button>
+</footer>
+<div id="msg" hidden></div>
+</body>
+</html>

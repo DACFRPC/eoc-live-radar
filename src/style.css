@@ -1,0 +1,41 @@
+html, body { margin: 0; height: 100%; background: #0b0f14; color: #e8eef5; overflow: hidden;
+  font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; }
+#map { position: absolute; inset: 0 0 67px 0; }
+#top { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 14px 22px 60px; pointer-events: none;
+  background: linear-gradient(#0b0f14e6, #0b0f1400); }
+#brand { display: flex; flex-direction: column; line-height: 1.2; }
+#title { font-weight: 700; font-size: 15px; letter-spacing: .04em; text-transform: uppercase; }
+#sub { font-size: 12px; color: #9fb0c3; }
+#status { display: flex; align-items: center; gap: 7px; font-weight: 700; font-size: 12px; letter-spacing: .12em;
+  padding: 5px 10px; border-radius: 999px; background: #121922cc; border: 1px solid #2a3644; }
+#status .dot { width: 9px; height: 9px; border-radius: 50%; background: #8696a8; }
+#status.live .dot { background: #ff3b30; animation: pulse 1.4s infinite; }
+#status.live { color: #fff; }
+#status.loop .dot { background: #4aa3ff; }
+#status.stale { color: #ffcc00; border-color: #ffcc00; }
+#status.stale .dot { background: #ffcc00; }
+#status.error { color: #ff6b60; border-color: #ff6b60; }
+#status.error .dot { background: #ff6b60; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 #ff3b30aa; } 100% { box-shadow: 0 0 0 9px #ff3b3000; } }
+#legend { position: absolute; right: 12px; bottom: 100px; width: 190px; padding: 8px 10px; border-radius: 8px;
+  background: #121922cc; border: 1px solid #2a3644; font-size: 10px; color: #b9c6d4; }
+#legend .bar { height: 8px; border-radius: 4px;
+  background: linear-gradient(90deg, #04e9e7, #019ff4, #0300f4, #02fd02, #01c501, #008e00, #fdf802, #e5bc00, #fd9500, #fd0000, #d40000, #bc0000, #f800fd, #9854c6); }
+#legend .ticks { display: flex; justify-content: space-between; margin-top: 4px; }
+#bar { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 14px;
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); background: #0e141cf2; border-top: 1px solid #2a3644; }
+#play { width: 46px; height: 46px; flex: none; border-radius: 50%; border: 0; background: #2f7fe0; color: #fff; font-size: 16px; cursor: pointer; }
+#play:active { transform: scale(.95); }
+#clock { flex: none; min-width: 118px; }
+#time { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+#ago { font-size: 11px; color: #9fb0c3; }
+#scrub { flex: 1; min-width: 80px; height: 30px; accent-color: #4aa3ff; }
+.mini { display: flex; flex-direction: column; font-size: 10px; color: #9fb0c3; text-transform: uppercase; letter-spacing: .08em; }
+.mini input { width: 90px; accent-color: #4aa3ff; }
+.chip { flex: none; padding: 8px 12px; border-radius: 999px; border: 1px solid #2a3644; background: transparent; color: #9fb0c3;
+  font-weight: 600; font-size: 12px; cursor: pointer; }
+.chip.on { background: #ffcc001f; border-color: #ffcc00; color: #ffdd55; }
+#msg { position: absolute; left: 50%; top: 64px; transform: translateX(-50%); max-width: 80%; padding: 8px 14px; border-radius: 8px;
+  background: #3a1210f2; border: 1px solid #ff6b60; font-size: 13px; }
+@media (max-width: 620px) { .mini, #legend { display: none; } #clock { min-width: 96px; } #time { font-size: 18px; } }
