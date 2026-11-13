@@ -39,3 +39,8 @@ html, body { margin: 0; height: 100%; background: #0b0f14; color: #e8eef5; overf
 #msg { position: absolute; left: 50%; top: 64px; transform: translateX(-50%); max-width: 80%; padding: 8px 14px; border-radius: 8px;
   background: #3a1210f2; border: 1px solid #ff6b60; font-size: 13px; }
 @media (max-width: 620px) { .mini, #legend { display: none; } #clock { min-width: 96px; } #time { font-size: 18px; } }
+/* Map credits: one quiet, solid strip directly above the controls (tap it to expand the full list). */
+.esri-attribution { background: #0e141c !important; color: #7f8fa1 !important; font-size: 10px !important; line-height: 14px !important;
+  padding: 1px 8px; border-top: 1px solid #1c2531; }
+.esri-attribution a, .esri-attribution__link { color: #7f8fa1 !important; }
+.esri-attribution__sources, .esri-attribution__powered-by { font-size: 10px !important; }

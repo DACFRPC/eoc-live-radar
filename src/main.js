@@ -32,7 +32,7 @@ $("opacity").value = Math.round(cfg.radarOpacity * 100);
 
 const frames = OFFSETS.map((m) => new WebTileLayer({
   urlTemplate: `${IEM}/cache/tile.py/1.0.0/nexrad-n0q-900913${m ? `-m${String(m).padStart(2, "0")}m` : ""}/{level}/{col}/{row}.png`,
-  copyright: "NEXRAD composite: Iowa Environmental Mesonet / NOAA NWS",
+  copyright: "Radar: IEM / NWS",
   title: m ? `Radar ${m} min ago` : "Radar now",
   listMode: "hide",
   opacity: 0,
