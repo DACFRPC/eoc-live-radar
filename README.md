@@ -47,7 +47,9 @@ conditions.html Conditions panel: current weather (Synoptic station KOBE + NWS h
                 (orange at 30 mph, red at 40 mph, observed or forecast in the next 24 h), Lake Okeechobee
                 stage with 24 h / 7 day change and a 7 day trend line (USACE CWMS Data API, office SAJ),
                 and river/canal gauges in the county from NOAA NWPS, colored by flood category.
-                config.js can set gustWatchMph, gustWarnMph, riverBbox, lakeTsId (exact CWMS series).
+                Lake value = Corps official daily average of 8 gauges (CWMS Okeechobee.Elev.Ave.~1Day.1Day.Best-SAJ-POR),
+                last full Eastern day, same number as w3.saj.usace.army.mil/h2o/currentLL.shtml.
+                config.js can set gustWatchMph, gustWarnMph, riverLids (NOAA gauge IDs), lakeTsId. URL option &rivers=TCGF1,CCAF1
                 Options (after # or ?): &stids=KOBE,S65E (use these stations instead of the county)
                          &count=5   &county=Okeechobee   &currentStid=KOBE   &alerts=0
 
