@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>EOC Circle Zones</title>
+<script src="./config.js"></script>
+<script type="module" src="/src/circles.js"></script>
+</head>
+<body>
+<div id="map"></div>
+
+<aside id="panel" aria-label="Circle zone tool">
+  <header id="phead">
+    <div id="brand"><span id="title">Okeechobee County EOC</span><span id="sub">Circle zones</span></div>
+    <div id="hbtns">
+      <a id="popout" class="iconbtn" href="./circles.html" target="_blank" rel="noopener" hidden></a>
+      <button id="collapse" class="iconbtn" title="Hide panel" aria-label="Hide panel" aria-expanded="true">
+        <svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div id="body">
+    <label class="lbl" for="dist">1. Distance</label>
+    <div class="row">
+      <input id="dist" type="text" inputmode="decimal" value="1" autocomplete="off" aria-describedby="distHelp">
+      <div class="seg" role="radiogroup" aria-label="Units">
+        <button type="button" data-unit="feet" role="radio" aria-checked="false">ft</button>
+        <button type="button" data-unit="miles" role="radio" aria-checked="true" class="on">mi</button>
+      </div>
+    </div>
+    <div id="distHelp" class="help">One number, or several for rings: 0.5, 1, 2</div>
+
+    <label class="lbl" for="name">Label <span>(optional)</span></label>
+    <input id="name" type="text" maxlength="40" placeholder="e.g. Evacuation zone" autocomplete="off">
+
+    <div class="lbl">Color</div>
+    <div id="colors" role="radiogroup" aria-label="Circle color"></div>
+
+    <div class="lbl">2. Location</div>
+    <button id="placeBtn" type="button" class="primary on" aria-pressed="true">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+      <span id="placeText">Click the map to draw</span>
+    </button>
+    <form id="searchForm" class="row" autocomplete="off">
+      <input id="addr" type="search" placeholder="or type an address / lat, long" aria-label="Address or latitude, longitude">
+      <button id="go" type="submit" class="ghost">Draw</button>
+    </form>
+    <div id="matches" hidden></div>
+    <div id="msg" class="help" role="status"></div>
+
+    <div id="listHead" class="lbl" hidden>Zones <span id="count"></span></div>
+    <ul id="list"></ul>
+    <div id="tools" class="row" hidden>
+      <button id="undo" type="button" class="ghost">Undo last</button>
+      <button id="download" type="button" class="ghost" title="Save the zones as a GeoJSON file you can add to ArcGIS Online">Save file</button>
+      <button id="clear" type="button" class="danger">Clear all</button>
+    </div>
+    <label class="check"><input id="showLabels" type="checkbox" checked> Show labels on map</label>
+    <div id="bmRow" hidden>
+      <div class="lbl">Map</div>
+      <div class="seg wide" id="bm" role="radiogroup" aria-label="Basemap">
+        <button type="button" data-bm="streets" role="radio">Streets</button>
+        <button type="button" data-bm="imagery" role="radio">Imagery</button>
+        <button type="button" data-bm="dark" role="radio">Dark</button>
+      </div>
+    </div>
+  </div>
+</aside>
+</body>
+</html>
