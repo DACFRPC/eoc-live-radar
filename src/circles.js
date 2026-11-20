@@ -10,6 +10,10 @@ import Graphic from "@arcgis/core/Graphic.js";
 import Point from "@arcgis/core/geometry/Point.js";
 import Circle from "@arcgis/core/geometry/Circle.js";
 import * as locator from "@arcgis/core/rest/locator.js";
+import FeatureLayer from "@arcgis/core/layers/FeatureLayer.js";
+import esriId from "@arcgis/core/identity/IdentityManager.js";
+import OAuthInfo from "@arcgis/core/identity/OAuthInfo.js";
+import * as webMercatorUtils from "@arcgis/core/geometry/support/webMercatorUtils.js";
 
 // ---- Settings: config.js, overridable from the URL (?webmap=ID&center=lon,lat&zoom=10&basemap=imagery&unit=feet)
 const q = new URLSearchParams(location.search);
@@ -19,6 +23,8 @@ const cfg = Object.assign({
 }, window.RADAR_CONFIG || {});
 cfg.zoom = cfg.circlesZoom ?? 10; // the radar's zoom (8) is too far out for zones
 const webmapId = q.get("webmap") || cfg.circlesWebmapId || "";
+// Shared layer mode: zones are saved to a hosted polygon layer (in the EOC web map) instead of this browser.
+const layerUrl = (q.get("layer") || cfg.circlesLayerUrl || "").replace(/\/+$/, "");
 if (q.get("center")) cfg.center = q.get("center").split(",").map(Number);
 if (q.get("zoom")) cfg.zoom = Number(q.get("zoom"));
 const COLORS = ["#ff3b30", "#ff9500", "#ffcc00", "#34c759", "#2f9bff", "#c644fc"];
@@ -121,8 +127,10 @@ $("collapse").onclick = () => {
 
 // ---- Zones: stored as plain data, drawn as geodesic circles (true ground distance)
 let list = [];
-try { list = JSON.parse(localStorage.getItem(STORE) || "[]").filter((z) => z && Number.isFinite(z.lon) && Array.isArray(z.dists)); } catch { list = []; }
-function save() { try { localStorage.setItem(STORE, JSON.stringify(list)); } catch { /* storage blocked: zones last until the page reloads */ } }
+if (!layerUrl) {
+  try { list = JSON.parse(localStorage.getItem(STORE) || "[]").filter((z) => z && Number.isFinite(z.lon) && Array.isArray(z.dists)); } catch { list = []; }
+}
+function save() { if (layerUrl) return; try { localStorage.setItem(STORE, JSON.stringify(list)); } catch { /* storage blocked: zones last until the page reloads */ } }
 
 const fmt = (n) => (Math.round(n * 1000) / 1000).toLocaleString("en-US");
 const unitShort = (u) => (u === "feet" ? "ft" : "mi");
@@ -182,9 +190,16 @@ function renderList() {
     s.textContent = (z.name ? distText(z) + " · " : "") + (z.place || `${z.lat.toFixed(5)}, ${z.lon.toFixed(5)}`);
     t.append(b, s); t.onclick = () => zoomTo(z);
     const x = document.createElement("button"); x.className = "x"; x.type = "button"; x.textContent = "×"; x.setAttribute("aria-label", "Remove " + b.textContent);
-    x.onclick = () => { list = list.filter((o) => o !== z); save(); draw(); };
+    x.onclick = () => removeZones([z]);
     li.append(sw, t, x); ul.append(li);
   });
+}
+
+/** Attributes stored for each ring (same names in the saved file and the shared layer). */
+function ringAttrs(z, d) {
+  return { zone_id: z.id, name: z.name || "", label: (z.name ? z.name + " · " : "") + fmt(d) + " " + unitShort(z.unit),
+    radius: d, unit: z.unit, radius_ft: Math.round(z.unit === "feet" ? d : d * 5280),
+    center_lat: Math.round(z.lat * 1e6) / 1e6, center_lon: Math.round(z.lon * 1e6) / 1e6, place: z.place || "", color: z.color, created: z.created || "" };
 }
 
 function zoomTo(z) { view.goTo(circleFor(z, z.dists[z.dists.length - 1]).extent.clone().expand(1.25)).catch(() => {}); }
@@ -194,8 +209,9 @@ function addZone(lon, lat, place) {
   if (!dists) { $("dist").focus(); return false; }
   const z = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), lon, lat, dists, unit,
     name: $("name").value.trim(), color, place: place || "", created: new Date().toISOString() };
-  list.push(z); save(); draw();
+  list.push(z); mine.push(z.id); save(); draw();
   say(`Drew ${distText(z)}${z.name ? " (" + z.name + ")" : ""}.`, "ok");
+  if (shared) shared.add(z);
   // move to the next color so the next zone stands apart
   color = COLORS[(COLORS.indexOf(color) + 1) % COLORS.length]; paintColors();
   return z;
@@ -255,12 +271,23 @@ $("searchForm").onsubmit = async (e) => {
 };
 
 // ---- Tools
-$("undo").onclick = () => { list.pop(); save(); draw(); say(""); };
+function removeZones(zs) {
+  if (!zs.length) return;
+  list = list.filter((o) => !zs.includes(o)); save(); draw(); say("");
+  if (shared) shared.remove(zs);
+}
+const mine = []; // zones drawn in this page session, so Undo never removes someone else's zone
+$("undo").onclick = () => {
+  while (mine.length && !list.some((z) => z.id === mine[mine.length - 1])) mine.pop();
+  const id = mine.pop();
+  removeZones(list.filter((z) => z.id === id));
+};
 let clearArm = 0;
+const clearText = layerUrl ? "Clear all (everyone)" : "Clear all";
 $("clear").onclick = () => {
   // two taps instead of a confirm() box, which embeds often block
-  if (Date.now() - clearArm > 3000) { clearArm = Date.now(); $("clear").textContent = "Tap again to clear"; setTimeout(() => { $("clear").textContent = "Clear all"; }, 3000); return; }
-  clearArm = 0; list = []; save(); draw(); $("clear").textContent = "Clear all"; say("All zones cleared.");
+  if (Date.now() - clearArm > 3000) { clearArm = Date.now(); $("clear").textContent = "Tap again to clear"; setTimeout(() => { $("clear").textContent = clearText; }, 3000); return; }
+  clearArm = 0; $("clear").textContent = clearText; removeZones(list.slice()); say("All zones cleared.");
 };
 $("showLabels").onchange = draw;
 
@@ -271,8 +298,7 @@ $("download").onclick = () => {
     features.push({
       type: "Feature",
       geometry: { type: "Polygon", coordinates: g.rings.map((r) => r.map(([x, y]) => [Math.round(x * 1e7) / 1e7, Math.round(y * 1e7) / 1e7])) },
-      properties: { name: z.name || "", radius: d, unit: z.unit, radius_ft: Math.round(z.unit === "feet" ? d : d * 5280),
-        center_lat: z.lat, center_lon: z.lon, place: z.place || "", color: z.color, created: z.created || "" },
+      properties: ringAttrs(z, d),
     });
   });
   const blob = new Blob([JSON.stringify({ type: "FeatureCollection", features }, null, 1)], { type: "application/geo+json" });
@@ -309,6 +335,86 @@ if (embedded) {
   document.addEventListener("fullscreenchange", paintFs);
   document.addEventListener("webkitfullscreenchange", paintFs);
   paintFs(); popBtn.hidden = false;
+}
+
+// ---- Shared layer: every zone is written to the hosted layer, so it shows on the EOC map (and for everyone).
+let shared = null;
+if (layerUrl) {
+  if (cfg.circlesAppId) {
+    esriId.registerOAuthInfos([new OAuthInfo({ appId: cfg.circlesAppId, popup: true,
+      popupCallbackUrl: new URL("oauth-callback.html", location.href).href })]);
+  }
+  const fl = new FeatureLayer({ url: layerUrl, outFields: ["*"] });
+  const fieldMap = {}; // lower-case name -> real field name (publishing can change case)
+  const toZones = (feats) => {
+    const by = {};
+    for (const f of feats) {
+      const a = {}; for (const k in f.attributes) a[k.toLowerCase()] = f.attributes[k];
+      const id = a.zone_id || "oid" + a[fl.objectIdField.toLowerCase()];
+      const z = by[id] ||= { id, lon: Number(a.center_lon), lat: Number(a.center_lat), dists: [], oids: [], unit: a.unit === "feet" ? "feet" : "miles",
+        name: a.name || "", color: COLORS.includes(a.color) ? a.color : COLORS[0], place: a.place || "", created: a.created || "" };
+      z.dists.push(Number(a.radius)); z.oids.push(f.attributes[fl.objectIdField]);
+    }
+    return Object.values(by).filter((z) => Number.isFinite(z.lon) && Number.isFinite(z.lat) && z.dists.every(Number.isFinite))
+      .map((z) => (z.dists.sort((a, b) => a - b), z)).sort((a, b) => String(a.created).localeCompare(String(b.created)));
+  };
+  let busy = 0;
+  const refresh = async () => {
+    if (busy) return;
+    try {
+      const r = await fl.queryFeatures({ where: "1=1", outFields: ["*"], returnGeometry: false });
+      if (busy) return; // an edit started meanwhile; the next refresh will pick it up
+      list = toZones(r.features); draw();
+      $("sub").textContent = "Circle zones · shared layer";
+    } catch (err) {
+      console.warn("layer query failed", err);
+      say("Could not read the shared circle layer. Check the layer URL, sharing, and that you are signed in.", "err");
+    }
+  };
+  const toLayerGeom = (g) => (fl.spatialReference?.isWebMercator ? webMercatorUtils.geographicToWebMercator(g) : g);
+  shared = {
+    async add(z) {
+      busy++;
+      try {
+        const addFeatures = z.dists.map((d) => {
+          const attrs = {};
+          for (const [k, v] of Object.entries(ringAttrs(z, d))) if (fieldMap[k]) attrs[fieldMap[k]] = v;
+          return new Graphic({ geometry: toLayerGeom(circleFor(z, d)), attributes: attrs });
+        });
+        const res = await fl.applyEdits({ addFeatures });
+        const bad = res.addFeatureResults.filter((r) => r.error);
+        if (bad.length) throw new Error(bad[0].error.message);
+        z.oids = res.addFeatureResults.map((r) => r.objectId);
+        say(`Saved ${distText(z)} to the EOC map.`, "ok");
+      } catch (err) {
+        console.warn("save failed", err);
+        list = list.filter((o) => o !== z); draw();
+        say("Not saved to the EOC map: " + (err.message || "edit refused") + ". Check that the layer allows adding features.", "err");
+      } finally { busy--; }
+    },
+    async remove(zs) {
+      const oids = zs.flatMap((z) => z.oids || []);
+      if (!oids.length) return;
+      busy++;
+      try {
+        const res = await fl.applyEdits({ deleteFeatures: oids.map((objectId) => ({ objectId })) });
+        const bad = res.deleteFeatureResults.filter((r) => r.error);
+        if (bad.length) throw new Error(bad[0].error.message);
+      } catch (err) {
+        console.warn("delete failed", err);
+        say("Could not remove from the EOC map: " + (err.message || "edit refused") + ".", "err");
+      } finally { busy--; refresh(); }
+    },
+  };
+  fl.load().then(() => {
+    for (const f of fl.fields) fieldMap[f.name.toLowerCase()] = f.name;
+    const missing = ["zone_id", "radius", "unit", "center_lat", "center_lon"].filter((k) => !fieldMap[k]);
+    if (missing.length) say("The shared layer is missing fields: " + missing.join(", ") + ". Publish it from the template file.", "err");
+    refresh(); setInterval(refresh, 30000);
+  }).catch((err) => {
+    console.warn("layer load failed", err);
+    say("Could not open the shared circle layer. Check the URL in config.js and that you can sign in.", "err");
+  });
 }
 
 draw();
