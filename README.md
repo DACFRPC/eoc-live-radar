@@ -43,5 +43,10 @@ conditions.html Conditions panel: current weather (Synoptic station KOBE + NWS h
                 In the Synoptic console (Manage Tokens) make a dedicated public token for this page and
                 set its allowed HTTP Origin to https://dacfrpc.github.io . Requests from any other web
                 page are then refused (403). Never put the private API key anywhere in this site.
+                Also shows: NWS rain forecast for the next 24/48/72 h (gridded QPF), a gust warning
+                (orange at 30 mph, red at 40 mph, observed or forecast in the next 24 h), Lake Okeechobee
+                stage with 24 h / 7 day change and a 7 day trend line (USACE CWMS Data API, office SAJ),
+                and river/canal gauges in the county from NOAA NWPS, colored by flood category.
+                config.js can set gustWatchMph, gustWarnMph, riverBbox, lakeTsId (exact CWMS series).
                 Options (after # or ?): &stids=KOBE,S65E (use these stations instead of the county)
                          &count=5   &county=Okeechobee   &currentStid=KOBE   &alerts=0
