@@ -1,0 +1,1 @@
+import"./VertexColor.glsl-a-PiA1Mn.js";import"./Texture2DPassUniform-DmlRZeJi.js";import"./doublePrecisionUtils-JlzdFEqZ.js";export{h as build}from"./GLTextureMaterial-DXQ6t-JJ.js";

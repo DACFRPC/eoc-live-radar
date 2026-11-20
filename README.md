@@ -61,4 +61,12 @@ circles.html    Circle zone tool (map page, built from src/circles.js). Type a d
                 can be added to ArcGIS Online as a hosted layer). Zones are kept in that browser only.
                 config.js: circlesWebmapId (EOC web map under the zones, must be shared with Everyone),
                 circlesBasemap, circlesZoom. Options: ?webmap=ITEMID&unit=feet&basemap=imagery&center=lon,lat&zoom=12
-                Note: zones drawn here appear only in this page, not on the Experience Builder map.
+                Shared layer (circles on the real EOC map): set circlesLayerUrl in config.js (or ?layer=URL) to a
+                hosted polygon layer published from EOC_Circle_Zones_template.geojson (fields zone_id, name, label,
+                radius, unit, radius_ft, center_lat, center_lon, place, color, created; editing on). Each ring is
+                saved as one polygon, so the layer in the EOC web map shows the circles to everyone (set its refresh
+                interval). circlesAppId = Client ID of an OAuth 2.0 credentials item whose redirect URL is
+                https://dacfrpc.github.io/eoc-live-radar/oauth-callback.html (sign-in window). Undo removes only zones
+                drawn in this session; "Clear all (everyone)" deletes every zone in the layer. The page re-reads the
+                layer every 30 s.
+                Without circlesLayerUrl, zones stay only in this page, in this browser.

@@ -34,4 +34,10 @@ window.RADAR_CONFIG = {
   circlesWebmapId: "",
   circlesBasemap: "streets",            // streets, imagery or dark (only used without a web map)
   circlesZoom: 10,
+  // Shared layer: paste the URL of the "EOC Circle Zones" hosted layer (ends in /FeatureServer/0).
+  // Circles are then saved to that layer, so they show on the EOC map in the app, for everyone.
+  // Leave "" to keep circles only in the viewer's browser.
+  circlesLayerUrl: "",
+  // Client ID of the OAuth credentials item made for this site (for the ArcGIS Online sign-in window).
+  circlesAppId: "",
 };
