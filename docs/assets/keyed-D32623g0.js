@@ -1,1 +1,0 @@
-import{E as e,M as t,T as n,w as r}from"./index-B0r3YaEU.js";var i=n(class extends e{constructor(){super(...arguments),this.key=t}render(e,t){return this.key=e,t}update(e,[t,n]){return t!==this.key&&(r(e),this.key=t),n}});export{i as t};

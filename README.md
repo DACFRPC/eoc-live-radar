@@ -12,6 +12,10 @@ warnings on/off, speed). No rebuild needed.
 URL options: index.html?webmap=ITEMID&center=-80.83,27.30&zoom=9&warnings=0
 
 In Experience Builder: put an Embed widget in a Window, choose Embed by URL, paste the page URL.
+Pop-out button (top right, next to the status badge): inside an embed it opens the viewer in
+its own browser tab, keeping any URL options. In its own tab it switches to full screen
+(press F or the button; Esc to leave). If the button does nothing inside the embed, the
+embed is blocking new tabs: allow pop-ups for the app's site in the browser.
 
 Data: radar tiles from the Iowa Environmental Mesonet (Iowa State University) NEXRAD
 composite, built from NOAA NWS radars; warnings from the Esri Living Atlas live feed

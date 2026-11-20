@@ -62,6 +62,39 @@ window.radarView = view;
 function note(text) { const el = $("msg"); el.textContent = text; el.hidden = !text; }
 if (cfg.webmapId) map.load().catch(() => note("The web map could not be opened. Check the ID and that it is shared with Everyone."));
 
+// ---- Pop-out / full screen button (top right, next to the status badge).
+// Inside an embed (Experience Builder Embed widget): opens this same view in a new browser tab.
+// Already in its own tab: toggles browser full screen. Hidden where neither is possible (e.g. iPhone Safari).
+const ICONS = {
+  popout: '<svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-8 8M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>',
+  enter: '<svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
+  exit: '<svg viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>',
+};
+const popBtn = $("popout");
+let embedded = true;
+try { embedded = window.self !== window.top; } catch { /* cross-origin parent: we are embedded */ }
+function setPop(icon, label) { popBtn.innerHTML = ICONS[icon]; popBtn.title = label; popBtn.setAttribute("aria-label", label); }
+if (embedded) {
+  // A plain link with target=_blank survives sandboxed iframes better than window.open. Keep the current URL options.
+  popBtn.href = location.href;
+  setPop("popout", "Open full screen in a new tab");
+  popBtn.hidden = false;
+} else if (document.fullscreenEnabled || document.webkitFullscreenEnabled) {
+  popBtn.removeAttribute("href"); popBtn.removeAttribute("target"); popBtn.setAttribute("role", "button"); popBtn.tabIndex = 0;
+  const isFull = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+  const paintFs = () => setPop(isFull() ? "exit" : "enter", isFull() ? "Exit full screen (Esc)" : "Full screen");
+  const toggleFs = () => {
+    const el = document.documentElement;
+    if (isFull()) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    else (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+  };
+  popBtn.onclick = (e) => { e.preventDefault(); toggleFs(); };
+  popBtn.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); toggleFs(); } };
+  document.addEventListener("fullscreenchange", paintFs);
+  document.addEventListener("webkitfullscreenchange", paintFs);
+  paintFs(); popBtn.hidden = false;
+}
+
 // ---- Warnings overlay
 let warnings = null;
 const warnBtn = $("warn");
@@ -133,6 +166,7 @@ $("play").onclick = () => setPlaying(!playing);
 $("scrub").oninput = (e) => { setPlaying(false); show(Number(e.target.value)); };
 $("opacity").oninput = (e) => { opacity = Number(e.target.value) / 100; frames[idx].opacity = opacity; };
 document.addEventListener("keydown", (e) => {
+  if (e.code === "KeyF" && !embedded && !popBtn.hidden) popBtn.click();
   if (e.code === "Space") { e.preventDefault(); setPlaying(!playing); }
   if (e.code === "ArrowLeft") { setPlaying(false); show((idx + frames.length - 1) % frames.length); }
   if (e.code === "ArrowRight") { setPlaying(false); show((idx + 1) % frames.length); }
