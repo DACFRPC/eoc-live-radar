@@ -122,8 +122,7 @@ const cfg = Object.assign({
   gustWatchMph: 30,                // gust tile and banner turn orange at or above this
   gustWarnMph: 40,                 // ... and red at or above this (about tropical storm force)
   riverBbox: [-81.22, 26.98, -80.66, 27.66],   // west, south, east, north: Okeechobee County
-  lakeTsId: "",                    // optional: exact USACE CWMS time series ID for the lake stage
-  lakeLocations: ["Lake Okeechobee", "Okeechobee"],   // CWMS locations searched when lakeTsId is empty
+  lakeTsId: "",                    // optional: override the USACE CWMS series (default = Corps official daily average)
   refreshMinutes: 5,
 }, window.RADAR_CONFIG || {}, window.CONDITIONS_CONFIG || {});
 
@@ -251,41 +250,44 @@ async function loadQPF() {
 // ---------------- Lake Okeechobee stage (USACE CWMS Data API) ----------------
 const CDA = "https://cwms-data.usace.army.mil/cwms-data/";
 const CDA_JSON = { Accept: "application/json;version=2" };
-let lakeTs = null;
-async function findLakeSeries() {
-  if (cfg.lakeTsId) return cfg.lakeTsId;
-  const names = cfg.lakeLocations.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
-  const j = await getJSON(`${CDA}catalog/TIMESERIES?office=SAJ&page-size=500&like=${encodeURIComponent("^(" + names + ")\\.(Elev|Stage)\\..*")}`, CDA_JSON);
-  const list = (j.entries || []).map((e) => ({ id: e.name || e["time-series-id"], interval: e.interval || "", latest: Date.parse(e["latest-time"] || (e.extents && e.extents[0] && e.extents[0]["latest-time"]) || 0) || 0 }));
-  if (!list.length) throw new Error("no lake series");
-  const locRank = (id) => { const i = cfg.lakeLocations.findIndex((n) => id.toLowerCase().startsWith(n.toLowerCase() + ".")); return i < 0 ? 9 : i; };
-  const score = (e) => (Date.now() - e.latest > 3 * 86400e3 ? 100 : 0) + locRank(e.id) * 10 + (/Inst/i.test(e.id) ? 0 : 3) + (/Rev/i.test(e.id) ? 0 : 1) + (/1Hour|15Minutes|30Minutes/i.test(e.interval || e.id) ? 0 : 2);
-  list.sort((a, b) => score(a) - score(b) || b.latest - a.latest);
-  return list[0].id;
+// The official lake level (the number on w3.saj.usace.army.mil/h2o/currentLL.shtml) is the Corps'
+// daily average of 8 lake gauges, ft NGVD29. Verified Nov 20, 2026: these series reproduce it exactly.
+// Each daily value is stamped 05:00Z on day D (midnight Eastern) and averages Eastern day D, so the
+// newest point is today's partial average. The Corps reports the last FULL day, labelled with the next date.
+const LAKE_SERIES = ["Okeechobee.Elev.Ave.~1Day.1Day.Best-SAJ-POR", "Okeechobee-8Station.Elev.Ave.~1Day.1Day.DCP-Computed"];
+const dayFmt = new Intl.DateTimeFormat([], { weekday: "short", month: "short", day: "numeric", timeZone: "America/New_York" });
+async function lakeValues(id) {
+  const end = new Date(), begin = new Date(end - 10 * 86400e3);
+  const j = await getJSON(`${CDA}timeseries?office=SAJ&unit=EN&name=${encodeURIComponent(id)}&begin=${begin.toISOString()}&end=${end.toISOString()}&page-size=500`, CDA_JSON);
+  const pts = (j.values || []).filter((v) => v && v[1] != null && isFinite(v[1])).map((v) => [typeof v[0] === "number" ? v[0] : Date.parse(v[0]), +v[1]]).sort((a, b) => a[0] - b[0]);
+  if (!pts.length) throw new Error("no lake values");
+  return pts;
 }
 async function loadLake() {
   try {
-    if (!lakeTs) lakeTs = await findLakeSeries();
-    const end = new Date(), begin = new Date(end - 7.5 * 86400e3);
-    const j = await getJSON(`${CDA}timeseries?office=SAJ&unit=EN&name=${encodeURIComponent(lakeTs)}&begin=${begin.toISOString()}&end=${end.toISOString()}&page-size=5000`, CDA_JSON);
-    const pts = (j.values || []).filter((v) => v && v[1] != null && isFinite(v[1])).map((v) => [typeof v[0] === "number" ? v[0] : Date.parse(v[0]), +v[1]]).sort((a, b) => a[0] - b[0]);
-    if (!pts.length) throw new Error("no lake values");
-    const [lt, lv] = pts[pts.length - 1];
-    const at = (ms) => { let best = null; for (const p of pts) if (p[0] <= lt - ms) best = p; return best; };
-    const d1 = at(86400e3), d7 = at(7 * 86400e3) || pts[0];
-    const chg = (p) => { if (!p) return ""; const d = lv - p[1]; return `<span class="${d > 0.005 ? "up" : d < -0.005 ? "down" : ""}">${d > 0 ? "+" : ""}${d.toFixed(2)} ft</span>`; };
-    $("lakeVal").innerHTML = `${lv.toFixed(2)}<small> ft NGVD29</small>`;
-    $("lakeSub").innerHTML = `24 h ${chg(d1) || "--"} · 7 day ${chg(d7)}<br>${esc(ago(new Date(lt)))}`;
-    $("lakeSub").title = "USACE CWMS series: " + lakeTs;
-    $("lakeTime").textContent = shortFmt.format(new Date(lt));
-    const lo = Math.min(...pts.map((p) => p[1])), hi = Math.max(...pts.map((p) => p[1])), pad = Math.max(0.05, (hi - lo) * 0.15);
-    const x = (t) => ((t - pts[0][0]) / Math.max(1, lt - pts[0][0]) * 296 + 2).toFixed(1), y = (v) => (50 - (v - lo + pad) / (hi - lo + 2 * pad) * 46).toFixed(1);
-    const line = pts.map((p, i) => (i ? "L" : "M") + x(p[0]) + "," + y(p[1])).join("");
-    $("lakeSpark").innerHTML = `<path d="${line}L298,54L2,54Z" fill="rgba(93,183,255,.15)"/><path d="${line}" fill="none" stroke="#5db7ff" stroke-width="2" vector-effect="non-scaling-stroke"/><circle cx="${x(lt)}" cy="${y(lv)}" r="3" fill="#e8eef5"/>`;
+    let pts = null, used = "";
+    for (const id of (cfg.lakeTsId ? [cfg.lakeTsId] : LAKE_SERIES)) { try { pts = await lakeValues(id); used = id; break; } catch (e) {} }
+    if (!pts) throw new Error("no lake series");
+    const full = pts.filter((p) => p[0] + 86400e3 <= Date.now());       // complete days only
+    const partial = pts.find((p) => p[0] + 86400e3 > Date.now());
+    if (!full.length) throw new Error("no full day");
+    const [lt, lv] = full[full.length - 1];
+    const prev = (n) => full.find((p) => Math.abs(p[0] - (lt - n * 86400e3)) < 3 * 3600e3);
+    const r2 = (v) => Math.round(v * 100) / 100;
+    const chg = (p) => { if (!p) return "--"; const d = r2(lv) - r2(p[1]); return `<span class="${d > 0.005 ? "up" : d < -0.005 ? "down" : ""}">${d > 0 ? "+" : ""}${d.toFixed(2)} ft</span>`; };
+    $("lakeVal").innerHTML = `${r2(lv).toFixed(2)}<small> ft NGVD29</small>`;
+    $("lakeSub").innerHTML = `1 day ${chg(prev(1))} · 7 day ${chg(prev(7))}${partial ? `<br>Today so far: ${r2(partial[1]).toFixed(2)} ft (partial day)` : ""}`;
+    $("lakeSub").title = "Corps daily average of 8 lake gauges. USACE CWMS series: " + used;
+    $("lakeTime").textContent = "Corps official, " + dayFmt.format(new Date(lt + 86400e3));
+    const sp = full.slice(-8);
+    const lo = Math.min(...sp.map((p) => p[1])), hi = Math.max(...sp.map((p) => p[1])), pad = Math.max(0.05, (hi - lo) * 0.15);
+    const x = (t) => ((t - sp[0][0]) / Math.max(1, lt - sp[0][0]) * 292 + 4).toFixed(1), y = (v) => (50 - (v - lo + pad) / (hi - lo + 2 * pad) * 46).toFixed(1);
+    const line = sp.map((p, i) => (i ? "L" : "M") + x(p[0]) + "," + y(p[1])).join("");
+    $("lakeSpark").innerHTML = `<path d="${line}L296,54L4,54Z" fill="rgba(93,183,255,.15)"/><path d="${line}" fill="none" stroke="#5db7ff" stroke-width="2" vector-effect="non-scaling-stroke"/>` +
+      sp.map((p) => `<circle cx="${x(p[0])}" cy="${y(p[1])}" r="2.5" fill="${p[0] === lt ? "#e8eef5" : "#5db7ff"}"><title>${esc(dayFmt.format(new Date(p[0])))}: ${r2(p[1]).toFixed(2)} ft</title></circle>`).join("");
   } catch (e) {
-    lakeTs = cfg.lakeTsId || null;
     $("lakeVal").textContent = "--";
-    $("lakeSub").innerHTML = `Lake stage could not be loaded right now. <a style="color:#5db7ff" href="https://water.usace.army.mil/overview/saj/locations/lake%20okeechobee" target="_blank" rel="noopener">USACE lake page</a>`;
+    $("lakeSub").innerHTML = `Lake stage could not be loaded right now. <a style="color:#5db7ff" href="https://w3.saj.usace.army.mil/h2o/currentLL.shtml" target="_blank" rel="noopener">Corps lake level page</a>`;
     $("lakeSpark").innerHTML = "";
   }
 }
