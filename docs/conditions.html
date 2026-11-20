@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>EOC Conditions</title>
+<script src="./config.js"></script>
+<style>
+html,body{margin:0;min-height:100%;background:#0b0f14;color:#e8eef5;font-family:"Avenir Next","Segoe UI",system-ui,sans-serif}
+main{padding:12px 14px 14px;max-width:720px;margin:0 auto}
+header{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+h1{font-size:14px;letter-spacing:.04em;text-transform:uppercase;margin:0}
+#badge{font-size:10px;font-weight:800;letter-spacing:.1em;padding:3px 7px;border-radius:4px;background:#5a6472;white-space:nowrap}
+#badge.live{background:#1f6f43}#badge.delayed{background:#b36b00}#badge.down{background:#b3261e}
+h2{font-size:11px;color:#9fb0c3;letter-spacing:.12em;text-transform:uppercase;margin:14px 0 6px;display:flex;justify-content:space-between;gap:8px}
+h2 span{letter-spacing:.02em;text-transform:none;font-weight:400}
+.card{border-radius:12px;background:#121922;border:1px solid #232e3b}
+/* alerts */
+#alerts{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.al{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-radius:8px;border:1px solid #232e3b;border-left-width:5px;background:#121922;font-size:13px;cursor:pointer}
+.al .ev{font-weight:800;text-transform:uppercase;letter-spacing:.03em}
+.al .until{color:#9fb0c3;font-size:12px}
+.al p{display:none;white-space:pre-wrap;font-size:12px;color:#cfd9e4;line-height:1.35;margin:6px 0 0}
+.al.open p{display:block}
+.sev-Extreme,.sev-Severe{border-left-color:#ff3b30}.sev-Extreme .ev,.sev-Severe .ev{color:#ff6b60}
+.sev-Moderate{border-left-color:#ff9500}.sev-Moderate .ev{color:#ffb040}
+.sev-Minor,.sev-Unknown{border-left-color:#ffcc00}.sev-Minor .ev,.sev-Unknown .ev{color:#ffdd55}
+.al.calm{border-left-color:#1f6f43;cursor:default;color:#b9c6d4}
+/* current */
+#now{display:flex;align-items:center;gap:14px;padding:12px 14px;background:linear-gradient(135deg,#16324f,#121922);border:1px solid #2a3644;border-radius:12px}
+#nowIcon{width:60px;height:60px;border-radius:10px;flex:none}
+#nowTemp{font-size:46px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+#nowText{font-size:16px;font-weight:600}
+#nowSub{font-size:12px;color:#b9c6d4;margin-top:3px}
+#stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
+.st{padding:7px 8px;border-radius:10px;background:#121922;border:1px solid #232e3b;font-size:10px;color:#9fb0c3;text-transform:uppercase;letter-spacing:.06em}
+.st b{display:block;font-size:17px;color:#e8eef5;letter-spacing:0;text-transform:none;font-variant-numeric:tabular-nums;margin-top:2px}
+.st b small{font-size:11px;color:#9fb0c3;font-weight:600}
+.gust b{color:#ffb040}
+/* gauges */
+#gauges{display:flex;flex-direction:column;gap:6px}
+.g{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;background:#121922;border:1px solid #232e3b;position:relative;overflow:hidden}
+.g .bar{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,rgba(93,183,255,.22),rgba(93,183,255,.06));z-index:0}
+.g>*:not(.bar){position:relative;z-index:1}
+.rk{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:15px;background:#1d4f7a}
+.g:first-of-type .rk{background:#2f7fc1}
+.nm{font-weight:700;font-size:14px;line-height:1.2;overflow:hidden;text-overflow:ellipsis}
+.sub{font-size:11px;color:#9fb0c3;margin-top:2px}
+.amt{font-size:24px;font-weight:800;color:#5db7ff;font-variant-numeric:tabular-nums;text-align:right;line-height:1}
+.amt small{font-size:12px;font-weight:600}
+.stale{color:#ffb040}
+#gaugeNote{font-size:11px;color:#9fb0c3;margin-top:6px}
+.msg{padding:10px 12px;border-radius:8px;font-size:13px;line-height:1.4}
+.msg.err{border:1px solid #ff6b60;background:#3a1210}
+.msg.info{border:1px solid #2a3644;background:#121922;color:#b9c6d4}
+footer{margin-top:12px;font-size:10px;color:#7f8fa1;line-height:1.4}
+@media (max-width:420px){#stats{grid-template-columns:repeat(2,1fr)}#nowTemp{font-size:38px}#nowIcon{width:48px;height:48px}}
+</style>
+</head>
+<body>
+<main>
+  <header><h1 id="title">Okeechobee County conditions</h1><span id="badge">LOADING</span></header>
+  <div id="alerts"></div>
+
+  <section id="now" hidden><img id="nowIcon" alt=""><div id="nowTemp"></div><div><div id="nowText"></div><div id="nowSub"></div></div></section>
+  <div id="stats"></div>
+  <div id="nowErr"></div>
+
+  <h2>Top rain gauges, last 24 hours <span id="gaugeTime"></span></h2>
+  <div id="gauges"></div>
+  <div id="gaugeNote"></div>
+
+  <footer id="foot">Observations and rain totals: Synoptic Data. Forecast text and alerts: National Weather Service. Refreshes every 5 minutes.</footer>
+</main>
+<script>
+// ---------------------------------------------------------------------------
+// Settings. Defaults below; config.js (window.RADAR_CONFIG) and the URL can override.
+// The Synoptic token is NEVER stored in this file. Pass it in the embed URL after a #:
+//   https://dacfrpc.github.io/eoc-live-radar/conditions.html#token=YOUR_PUBLIC_TOKEN
+// ---------------------------------------------------------------------------
+const cfg = Object.assign({
+  county: "Okeechobee",            // rain gauges are limited to this county
+  state: "FL",
+  gaugeStids: "",                  // optional: comma list of Synoptic station IDs to use instead of the county
+  gaugeCount: 3,
+  gaugeStaleMinutes: 180,          // a gauge whose last report is older than this is flagged
+  currentStid: "KOBE",             // Okeechobee County Airport
+  forecastPoint: [27.2439, -80.8298],
+  showAlerts: true,
+  refreshMinutes: 5,
+}, window.RADAR_CONFIG || {}, window.CONDITIONS_CONFIG || {});
+
+const q = new URLSearchParams(location.search);
+const h = new URLSearchParams(location.hash.replace(/^#/, ""));
+const pick = (k) => h.get(k) || q.get(k);
+for (const k of ["county", "state", "currentStid"]) if (pick(k)) cfg[k] = pick(k);
+if (pick("stids")) cfg.gaugeStids = pick("stids");
+if (pick("count")) cfg.gaugeCount = Math.max(1, Math.min(10, +pick("count") || 3));
+if (pick("alerts") === "0") cfg.showAlerts = false;
+const token = pick("token") || cfg.synopticToken || "";
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const timeFmt = new Intl.DateTimeFormat([], { hour: "numeric", minute: "2-digit", timeZoneName: "short" });
+const shortFmt = new Intl.DateTimeFormat([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+const ago = (d) => { const m = Math.round((Date.now() - d) / 60000); return m < 1 ? "just now" : m < 60 ? m + " min ago" : Math.round(m / 6) / 10 + " h ago"; };
+const compass = (deg) => deg == null ? "" : ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"][Math.round(deg / 22.5) % 16];
+const titleCase = (s) => String(s || "").replace(/[A-Za-z0-9]+/g, (w) => /\d/.test(w) || /^(SFWMD|USGS|NWS|FAWN|ASOS|AWOS|RAWS|CWOP|US|SR|CR|FL|II|III)$/i.test(w) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+
+$("title").textContent = cfg.conditionsTitle || cfg.county + " County conditions";
+
+async function getJSON(url, headers) {
+  const r = await fetch(url, { headers: headers || {}, cache: "no-store", referrerPolicy: "no-referrer" });
+  if (!r.ok) { const e = new Error("HTTP " + r.status); e.status = r.status; throw e; }
+  return r.json();
+}
+function synoptic(service, params) {
+  const u = new URL("https://api.synopticdata.com/v2/stations/" + service);
+  for (const [k, v] of Object.entries(params)) if (v !== "" && v != null) u.searchParams.set(k, v);
+  u.searchParams.set("token", token);
+  return getJSON(u.toString()).then((j) => {
+    const code = j.SUMMARY && j.SUMMARY.RESPONSE_CODE;
+    if (code !== 1 && code !== 2) { const e = new Error((j.SUMMARY && j.SUMMARY.RESPONSE_MESSAGE) || "Synoptic error"); e.code = code; throw e; }
+    return j;
+  });
+}
+const tokenProblem = (e) => e.status === 401 || e.status === 403 || e.code === 200;
+
+// ---------------- Current conditions ----------------
+let nwsHourly = null;
+async function nwsNow() {
+  try {
+    if (!nwsHourly) nwsHourly = (await getJSON(`https://api.weather.gov/points/${cfg.forecastPoint[0]},${cfg.forecastPoint[1]}`, { Accept: "application/geo+json" })).properties.forecastHourly;
+    return (await getJSON(nwsHourly, { Accept: "application/geo+json" })).properties.periods[0];
+  } catch (e) { nwsHourly = null; return null; }
+}
+async function loadCurrent() {
+  const vars = "air_temp,relative_humidity,wind_speed,wind_gust,wind_direction,heat_index,dew_point_temperature,sea_level_pressure,altimeter,precip_accum_one_hour";
+  const [obs, fc] = await Promise.all([
+    token ? synoptic("latest", { stid: cfg.currentStid, vars, within: 180, units: "english,speed|mph,pres|inhg" }).catch((e) => ({ error: e })) : Promise.resolve(null),
+    nwsNow(),
+  ]);
+  const st = obs && !obs.error && obs.STATION && obs.STATION[0];
+  const o = (st && st.OBSERVATIONS) || {};
+  const val = (k) => o[k + "_value_1"] ? o[k + "_value_1"].value : (o[k + "_value_1d"] ? o[k + "_value_1d"].value : null);
+  const obTime = Object.values(o).map((x) => x && x.date_time).filter(Boolean).sort().pop();
+
+  if (!st && !fc) { $("now").hidden = true; $("stats").innerHTML = ""; $("nowErr").innerHTML = `<div class="msg err">Current conditions could not be loaded. Retrying automatically.</div>`; return obs && obs.error; }
+  $("nowErr").innerHTML = "";
+  $("now").hidden = false;
+  const t = val("air_temp");
+  $("nowTemp").textContent = (t != null ? Math.round(t) : fc ? fc.temperature : "--") + "°";
+  $("nowText").textContent = fc ? fc.shortForecast : "Observed";
+  if (fc && fc.icon) { $("nowIcon").src = fc.icon; $("nowIcon").style.display = ""; } else $("nowIcon").style.display = "none";
+  $("nowIcon").onerror = () => { $("nowIcon").style.display = "none"; };
+  const hi = val("heat_index");
+  $("nowSub").textContent = st
+    ? `${titleCase(st.NAME)} (${st.STID})${obTime ? " · " + ago(new Date(obTime)) : ""}${hi != null && t != null && hi - t >= 2 ? " · Feels like " + Math.round(hi) + "°" : ""}`
+    : "NWS hourly forecast (station observations unavailable)";
+
+  const ws = val("wind_speed"), wg = val("wind_gust"), wd = val("wind_direction");
+  const wind = ws != null ? `${compass(wd)} ${Math.round(ws)}<small> mph</small>` : fc ? esc(`${fc.windDirection || ""} ${fc.windSpeed || ""}`) : "--";
+  const rh = val("relative_humidity");
+  const p = val("sea_level_pressure") ?? val("altimeter");
+  const pop = fc && fc.probabilityOfPrecipitation && fc.probabilityOfPrecipitation.value;
+  $("stats").innerHTML = [
+    `<div class="st">Wind<b>${wind}</b></div>`,
+    `<div class="st gust">Gusts<b>${wg != null ? Math.round(wg) + "<small> mph</small>" : "--"}</b></div>`,
+    `<div class="st">Humidity<b>${rh != null ? Math.round(rh) + "<small>%</small>" : "--"}</b></div>`,
+    pop != null ? `<div class="st">Rain chance<b>${pop}<small>%</small></b></div>` : `<div class="st">Pressure<b>${p != null ? p.toFixed(2) + "<small> in</small>" : "--"}</b></div>`,
+  ].join("");
+  return obs && obs.error;
+}
+
+// ---------------- Top rain gauges ----------------
+async function loadGauges() {
+  if (!token) {
+    $("gauges").innerHTML = `<div class="msg info">Rain gauge totals need a Synoptic token. Add <b>#token=</b> followed by your Synoptic <i>public</i> token to the end of this page's address in the Embed widget.</div>`;
+    $("gaugeNote").textContent = ""; return "notoken";
+  }
+  const sel = cfg.gaugeStids ? { stid: cfg.gaugeStids } : { state: cfg.state, county: cfg.county };
+  let j;
+  try { j = await synoptic("precip", Object.assign(sel, { recent: 1440, pmode: "totals", units: "english", complete: 1 })); }
+  catch (e) {
+    $("gauges").innerHTML = `<div class="msg err">${tokenProblem(e) ? "Synoptic refused the token. Check that it is a public token and that its allowed origin includes https://dacfrpc.github.io." : "Rain gauge totals could not be loaded right now. Retrying automatically."}</div>`;
+    return tokenProblem(e) ? "token" : "down";
+  }
+  const countyLc = cfg.county.toLowerCase();
+  const rows = (j.STATION || [])
+    // Safety net: when the county selector is used, drop anything Synoptic tags with a different county.
+    .filter((s) => cfg.gaugeStids || !s.COUNTY || String(s.COUNTY).toLowerCase().replace(/ county$/, "") === countyLc)
+    .map((s) => {
+      const p = (s.OBSERVATIONS && s.OBSERVATIONS.precipitation && s.OBSERVATIONS.precipitation[0]) || {};
+      return { id: s.STID, name: titleCase(s.NAME), net: s.SHORTNAME || s.MNET_SHORTNAME || "", total: p.total, last: p.last_report ? new Date(p.last_report) : null, count: p.count || 0 };
+    })
+    .filter((r) => r.total != null && r.count > 0 && !isNaN(r.total));
+  rows.sort((a, b) => b.total - a.total || (b.last || 0) - (a.last || 0));
+  const top = rows.slice(0, cfg.gaugeCount);
+  const max = Math.max(0.01, ...top.map((r) => r.total));
+  const where = cfg.gaugeStids ? "selected gauges" : `${cfg.county} County gauges`;
+  if (!rows.length) {
+    $("gauges").innerHTML = `<div class="msg info">No ${esc(where)} reported rainfall data in the last 24 hours.</div>`;
+    $("gaugeNote").textContent = ""; return "ok";
+  }
+  $("gauges").innerHTML = top.map((r, i) => {
+    const stale = r.last && Date.now() - r.last > cfg.gaugeStaleMinutes * 60000;
+    return `<div class="g" title="${esc(r.name)} (${esc(r.id)})"><div class="bar" style="width:${Math.max(4, r.total / max * 100).toFixed(0)}%"></div>
+      <div class="rk">${i + 1}</div>
+      <div style="min-width:0"><div class="nm">${esc(r.name)}</div><div class="sub">${esc(r.id)}${r.net ? " · " + esc(r.net) : ""} · <span class="${stale ? "stale" : ""}">last report ${r.last ? esc(ago(r.last)) : "unknown"}${stale ? " (stale)" : ""}</span></div></div>
+      <div class="amt">${r.total.toFixed(2)}<small> in</small></div></div>`;
+  }).join("");
+  const wet = rows.filter((r) => r.total >= 0.01).length;
+  $("gaugeNote").textContent = `${rows.length} ${where} reporting · ${wet} with measurable rain. Ranked by 24 hour total.`;
+  $("gaugeTime").textContent = "to " + shortFmt.format(new Date());
+  return "ok";
+}
+
+// ---------------- NWS alerts for the county ----------------
+async function loadAlerts() {
+  if (!cfg.showAlerts) { $("alerts").innerHTML = ""; return; }
+  try {
+    const j = await getJSON(`https://api.weather.gov/alerts/active?area=${encodeURIComponent(cfg.state)}`, { Accept: "application/geo+json" });
+    const rank = { Extreme: 0, Severe: 1, Moderate: 2, Minor: 3, Unknown: 4 };
+    const local = j.features.map((f) => f.properties)
+      .filter((p) => new RegExp("\\b" + cfg.county + "\\b", "i").test(p.areaDesc || ""))
+      .sort((a, b) => (rank[a.severity] ?? 5) - (rank[b.severity] ?? 5));
+    $("alerts").innerHTML = local.length
+      ? local.map((p) => `<div class="al sev-${esc(p.severity || "Unknown")}" onclick="this.classList.toggle('open')"><div><span class="ev">${esc(p.event)}</span> <span class="until">${p.ends || p.expires ? "until " + esc(shortFmt.format(new Date(p.ends || p.expires))) : ""}</span><p>${esc(p.headline || "")}\n\n${esc(p.description || "")}${p.instruction ? "\n\n" + esc(p.instruction) : ""}</p></div></div>`).join("")
+      : `<div class="al calm">No active NWS alerts for ${esc(cfg.county)} County.</div>`;
+  } catch (e) { $("alerts").innerHTML = ""; }
+}
+
+async function load() {
+  const [curErr, g] = await Promise.all([loadCurrent(), loadGauges(), loadAlerts()]).then((r) => [r[0], r[1]]);
+  const b = $("badge");
+  if (g === "ok" && !curErr) { b.className = "live"; b.textContent = "LIVE · " + timeFmt.format(new Date()); }
+  else if (g === "notoken") { b.className = "delayed"; b.textContent = "NO TOKEN"; }
+  else if (g === "token") { b.className = "down"; b.textContent = "TOKEN REFUSED"; }
+  else { b.className = "down"; b.textContent = "FEED DOWN"; }
+}
+load(); setInterval(load, cfg.refreshMinutes * 60000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
+</script>
+</body>
+</html>

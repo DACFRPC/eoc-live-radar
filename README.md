@@ -34,3 +34,14 @@ alerts.html     Scrolling ticker of active NWS alerts. Made for a thin strip (ab
                 Options: ?area=FL (state) or ?area=US (national, Severe and Extreme only)
                          ?min=Minor|Moderate|Severe|Extreme   ?speed=70   ?view=list (full list with details)
 Both read api.weather.gov directly from the viewer's browser and refresh on their own.
+
+conditions.html Conditions panel: current weather (Synoptic station KOBE + NWS hourly text), active
+                NWS alerts for the county, and the top 3 rain gauges in Okeechobee County by 24 hour
+                total (Synoptic precip service, county selector).
+                Needs a Synoptic PUBLIC token, passed after a # so it never sits in this repository:
+                  conditions.html#token=YOUR_PUBLIC_TOKEN
+                In the Synoptic console (Manage Tokens) make a dedicated public token for this page and
+                set its allowed HTTP Origin to https://dacfrpc.github.io . Requests from any other web
+                page are then refused (403). Never put the private API key anywhere in this site.
+                Options (after # or ?): &stids=KOBE,S65E (use these stations instead of the county)
+                         &count=5   &county=Okeechobee   &currentStid=KOBE   &alerts=0
