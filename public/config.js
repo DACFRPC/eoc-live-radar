@@ -27,4 +27,11 @@ window.RADAR_CONFIG = {
   alertArea: "FL",                      // two-letter state for the ticker, or "US" for national
   localCounty: "Okeechobee",            // alerts naming this county are pinned first and tagged LOCAL
   tickerSpeed: 70,                      // ticker scroll speed, pixels per second
+
+  // ---- Circle zone tool (circles.html)
+  // Optional: item ID of the EOC web map to show under the zones. Leave "" for a plain basemap.
+  // The web map must be shared with Everyone, or viewers will be asked to sign in.
+  circlesWebmapId: "",
+  circlesBasemap: "streets",            // streets, imagery or dark (only used without a web map)
+  circlesZoom: 10,
 };

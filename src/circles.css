@@ -1,0 +1,70 @@
+html, body { margin: 0; height: 100%; background: #0b0f14; color: #e8eef5; overflow: hidden;
+  font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; }
+#map { position: absolute; inset: 0; }
+#map.placing .esri-view-surface { cursor: crosshair !important; }
+
+#panel { position: absolute; top: 10px; left: 56px; width: 290px; max-height: calc(100% - 50px); display: flex; flex-direction: column;
+  background: #0e141cf2; border: 1px solid #2a3644; border-radius: 12px; box-shadow: 0 6px 24px #0008; overflow: hidden; }
+#phead { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid #1c2531; }
+#brand { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+#title { font-weight: 700; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#sub { font-size: 12px; color: #9fb0c3; }
+#hbtns { display: flex; gap: 6px; flex: none; }
+.iconbtn { display: grid; place-items: center; width: 30px; height: 30px; box-sizing: border-box; border-radius: 50%; padding: 0;
+  background: #121922; border: 1px solid #2a3644; color: #b9c6d4; cursor: pointer; text-decoration: none; }
+.iconbtn:hover, .iconbtn:focus-visible { color: #fff; border-color: #4aa3ff; outline: none; }
+.iconbtn svg, .primary svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#panel.min #body { display: none; }
+#panel.min #collapse svg { transform: rotate(180deg); }
+
+#body { padding: 4px 12px 12px; overflow-y: auto; }
+.lbl { display: block; font-size: 10px; color: #9fb0c3; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; margin: 12px 0 5px; }
+.lbl span { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.help { font-size: 11px; color: #7f8fa1; margin-top: 4px; min-height: 0; }
+#msg:empty { display: none; }
+#msg.err { color: #ff8a80; }
+#msg.ok { color: #7fd6a0; }
+.row { display: flex; gap: 6px; align-items: stretch; }
+input[type=text], input[type=search] { flex: 1; min-width: 0; box-sizing: border-box; width: 100%; padding: 8px 10px; border-radius: 8px;
+  border: 1px solid #2a3644; background: #121922; color: #e8eef5; font: inherit; font-size: 14px; }
+input:focus { outline: none; border-color: #4aa3ff; }
+input.bad { border-color: #ff6b60; }
+#dist { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.seg { display: flex; border: 1px solid #2a3644; border-radius: 8px; overflow: hidden; flex: none; }
+.seg button { border: 0; background: #121922; color: #9fb0c3; font: inherit; font-weight: 700; font-size: 14px; padding: 0 14px; cursor: pointer; }
+.seg button.on { background: #2f7fe0; color: #fff; }
+#colors { display: flex; gap: 8px; }
+#colors button { width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; box-shadow: inset 0 0 0 2px #0e141c; }
+#colors button.on { border-color: #fff; }
+button { font: inherit; }
+.primary { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; border-radius: 8px; margin-bottom: 6px;
+  border: 1px solid #2a3644; background: #121922; color: #b9c6d4; font-weight: 700; font-size: 14px; cursor: pointer; }
+.primary.on { background: #2f7fe0; border-color: #2f7fe0; color: #fff; }
+.ghost, .danger { flex: 1; padding: 8px 10px; border-radius: 8px; border: 1px solid #2a3644; background: transparent; color: #b9c6d4; font-weight: 600; font-size: 12px; cursor: pointer; }
+.ghost:hover { border-color: #4aa3ff; color: #fff; }
+.danger { color: #ff8a80; border-color: #5a2a26; }
+.danger:hover { background: #3a1210; }
+#go { flex: none; }
+#matches { margin-top: 6px; border: 1px solid #2a3644; border-radius: 8px; overflow: hidden; }
+#matches button { display: block; width: 100%; text-align: left; padding: 7px 10px; border: 0; border-top: 1px solid #1c2531; background: #121922; color: #e8eef5; font-size: 12px; cursor: pointer; }
+#matches button:first-child { border-top: 0; }
+#matches button:hover { background: #16324f; }
+
+#list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+#list li { display: grid; grid-template-columns: 12px 1fr auto; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 8px; background: #121922; border: 1px solid #232e3b; font-size: 13px; }
+#list .sw { width: 12px; height: 12px; border-radius: 50%; }
+#list .t { min-width: 0; cursor: pointer; }
+#list .t b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#list .t small { color: #9fb0c3; font-size: 11px; }
+#list .x { border: 0; background: none; color: #7f8fa1; font-size: 18px; line-height: 1; cursor: pointer; padding: 2px 4px; }
+#list .x:hover { color: #ff8a80; }
+#tools { margin-top: 8px; }
+.check { display: flex; gap: 6px; align-items: center; font-size: 12px; color: #9fb0c3; margin-top: 10px; cursor: pointer; }
+
+.esri-attribution { background: #0e141c !important; color: #7f8fa1 !important; font-size: 10px !important; }
+.esri-attribution a, .esri-attribution__link { color: #7f8fa1 !important; }
+
+@media (max-width: 520px) {
+  #panel { left: 8px; right: 8px; top: auto; bottom: 22px; width: auto; max-height: 55%; }
+}
+.seg.wide { display: flex; } .seg.wide button { flex: 1; padding: 7px 0; font-size: 12px; }

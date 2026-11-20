@@ -50,3 +50,13 @@ conditions.html Conditions panel: current weather (Synoptic station KOBE + NWS h
                 config.js can set gustWatchMph, gustWarnMph, riverBbox, lakeTsId (exact CWMS series).
                 Options (after # or ?): &stids=KOBE,S65E (use these stations instead of the county)
                          &count=5   &county=Okeechobee   &currentStid=KOBE   &alerts=0
+
+circles.html    Circle zone tool (map page, built from src/circles.js). Type a distance in feet or miles
+                (one number, or several like 0.5, 1, 2 for rings), optional label and color, then click
+                the map or type an address or "lat, long" and press Draw. Circles are geodesic (true
+                ground distance). Zones list with zoom-to and remove, Undo last, Clear all (tap twice),
+                labels on/off, Streets/Imagery/Dark basemap, and Save file (GeoJSON of the zones, which
+                can be added to ArcGIS Online as a hosted layer). Zones are kept in that browser only.
+                config.js: circlesWebmapId (EOC web map under the zones, must be shared with Everyone),
+                circlesBasemap, circlesZoom. Options: ?webmap=ITEMID&unit=feet&basemap=imagery&center=lon,lat&zoom=12
+                Note: zones drawn here appear only in this page, not on the Experience Builder map.

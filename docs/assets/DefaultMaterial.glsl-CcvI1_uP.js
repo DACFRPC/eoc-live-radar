@@ -1,1 +1,0 @@
-export{r as build}from"./RealisticTree.glsl-CedjCCFf.js";import"./VertexColor.glsl-BfG7-zos.js";import"./getEmissions.glsl-CF69lU70.js";import"./EvaluateSceneLighting.glsl-CyT6hdOY.js";import"./GLTextureMaterial-BYa3pkzQ.js";import"./Texture2DPassUniform-DmlRZeJi.js";import"./doublePrecisionUtils-JlzdFEqZ.js";

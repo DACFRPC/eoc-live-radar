@@ -1,0 +1,1 @@
+import"./VertexColor.glsl-XoDP1uG7.js";export{l as CompositingPassParameters,c as build}from"./SnappingVisualizer3D-dP5CLhus.js";import"./Texture2DPassUniform-DmlRZeJi.js";import"./NoParameters-ZDc3QXO4.js";import"./doublePrecisionUtils-JlzdFEqZ.js";
