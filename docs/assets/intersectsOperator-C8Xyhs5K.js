@@ -1,0 +1,1 @@
+import{r as e}from"./operatorIntersects--4Gx9K8C.js";import"./deprecatedOperator-C_KSnnAr.js";import{c as t,r as n}from"./jsonConverter-CB-g0tOB.js";function r(r,i){let a=n(r);return e(a.getGeometry(),t(i),a.getSpatialReference())}export{r as intersectsExecute};

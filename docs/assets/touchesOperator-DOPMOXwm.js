@@ -1,1 +1,0 @@
-import{n as e}from"./OperatorTouches-BLSYYOKB.js";import"./deprecatedOperator-C_KSnnAr.js";import{c as t,r as n}from"./jsonConverter-Cm3a-JW_.js";var r=new e;function i(e,t,n){return r.execute(e,t,n,null)}function a(e,r){let a=n(e);return i(a.getGeometry(),t(r),a.getSpatialReference())}export{a as touchesExecute};
