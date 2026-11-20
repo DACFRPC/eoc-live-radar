@@ -37,7 +37,7 @@ window.RADAR_CONFIG = {
   // Shared layer: paste the URL of the "EOC Circle Zones" hosted layer (ends in /FeatureServer/0).
   // Circles are then saved to that layer, so they show on the EOC map in the app, for everyone.
   // Leave "" to keep circles only in the viewer's browser.
-  circlesLayerUrl: "",
+  circlesLayerUrl: "https://services5.arcgis.com/gutFqkMq9XlLck8D/arcgis/rest/services/EOC_Circle_Zones_template/FeatureServer/0",
   // Client ID of the OAuth credentials item made for this site (for the ArcGIS Online sign-in window).
-  circlesAppId: "",
+  circlesAppId: "zuuzHKR8zUMw5sxb",
 };
