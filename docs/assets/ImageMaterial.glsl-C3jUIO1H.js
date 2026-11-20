@@ -1,0 +1,1 @@
+import"./VertexColor.glsl-DVcCjaGD.js";import"./Texture2DPassUniform-DmlRZeJi.js";import"./NoParameters-ZDc3QXO4.js";import"./doublePrecisionUtils-JlzdFEqZ.js";export{n as ImageMaterialPassParameters,r as build}from"./editingTools-BiBcFdVJ.js";

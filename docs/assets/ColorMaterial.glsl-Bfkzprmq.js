@@ -1,1 +1,0 @@
-import"./vec3-mgEpaRyZ.js";export{n as build}from"./ColorMaterial-BXr8iOso.js";import"./VertexColor.glsl-a-PiA1Mn.js";import"./Texture2DPassUniform-DmlRZeJi.js";import"./doublePrecisionUtils-JlzdFEqZ.js";

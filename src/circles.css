@@ -68,3 +68,7 @@ button { font: inherit; }
   #panel { left: 8px; right: 8px; top: auto; bottom: 22px; width: auto; max-height: 55%; }
 }
 .seg.wide { display: flex; } .seg.wide button { flex: 1; padding: 7px 0; font-size: 12px; }
+#gate { display: none; padding-top: 8px; }
+#gate p { font-size: 13px; color: #b9c6d4; line-height: 1.4; margin: 4px 0 10px; }
+#panel.locked #gate { display: block; }
+#panel.locked #body > :not(#gate) { display: none; }
