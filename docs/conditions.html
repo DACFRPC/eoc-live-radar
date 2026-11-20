@@ -388,7 +388,17 @@ async function load() {
   else if (g === "token") { b.className = "down"; b.textContent = "TOKEN REFUSED"; }
   else { b.className = "down"; b.textContent = "FEED DOWN"; }
 }
-load(); setInterval(load, cfg.refreshMinutes * 60000);
+// Self-update: GitHub Pages lets browsers cache this page for up to 10 minutes, and embedded panels
+// can sit open for days. On each refresh, check whether a newer version was published and reload if so.
+const BUILD = "2026-11-20d";
+async function checkVersion() {
+  try {
+    const t = await (await fetch(location.pathname + "?v=" + Date.now(), { cache: "no-store" })).text();
+    const m = /const BUILD = "([^"]+)"/.exec(t);
+    if (m && m[1] !== BUILD) location.reload();
+  } catch (e) {}
+}
+load(); setInterval(() => { checkVersion(); load(); }, cfg.refreshMinutes * 60000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
 </script>
 </body>
