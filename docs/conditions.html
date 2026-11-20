@@ -121,7 +121,7 @@ const cfg = Object.assign({
   showAlerts: true,
   gustWatchMph: 30,                // gust tile and banner turn orange at or above this
   gustWarnMph: 40,                 // ... and red at or above this (about tropical storm force)
-  riverBbox: [-81.22, 26.98, -80.66, 27.66],   // west, south, east, north: Okeechobee County
+  riverLids: ["TCGF1"],            // NOAA river gauge IDs (water.noaa.gov). TCGF1 = Taylor Creek at Grassy Island, the only one in the county
   lakeTsId: "",                    // optional: override the USACE CWMS series (default = Corps official daily average)
   refreshMinutes: 5,
 }, window.RADAR_CONFIG || {}, window.CONDITIONS_CONFIG || {});
@@ -296,29 +296,32 @@ async function loadLake() {
 const NWPS = "https://api.water.noaa.gov/nwps/v1/gauges";
 const catRank = { major: 0, moderate: 1, minor: 2, action: 3, no_flooding: 4, not_defined: 5, low_threshold: 6, obs_not_current: 8, out_of_service: 9 };
 const catLabel = { major: "Major flood", moderate: "Moderate flood", minor: "Minor flood", action: "Action stage", no_flooding: "Below flood", not_defined: "No flood stage set", low_threshold: "Low water", obs_not_current: "Not current", out_of_service: "Out of service" };
-const riverInfo = {};
+let riversOk = false;
+// NOAA limits the gauge *list* query to 10 requests per 5 minutes per network (an EOC full of panels
+// shares one address), so the panel reads a fixed list of gauges one by one instead, every 15 minutes.
+let riversAt = 0;
 async function loadRivers() {
-  try {
-    const [w, s0, e, n] = cfg.riverBbox;
-    const j = await getJSON(`${NWPS}?bbox.xmin=${w}&bbox.ymin=${s0}&bbox.xmax=${e}&bbox.ymax=${n}&srid=EPSG_4326`);
-    let g = (j.gauges || j || []).filter((x) => x && x.status && x.status.observed && x.status.observed.primary > -999);
-    g.sort((a, b) => (catRank[a.status.observed.floodCategory] ?? 7) - (catRank[b.status.observed.floodCategory] ?? 7) || a.name.localeCompare(b.name));
-    g = g.slice(0, 8);
-    await Promise.all(g.filter((x) => !riverInfo[x.lid]).map((x) => getJSON(`${NWPS}/${x.lid}`).then((d) => { riverInfo[x.lid] = (d.flood && d.flood.categories) || {}; }).catch(() => {})));
-    if (!g.length) { $("rivers").innerHTML = `<div class="msg info">No river or canal gauges with current readings in this area.</div>`; $("riverNote").textContent = ""; return; }
-    $("rivers").innerHTML = g.map((x) => {
-      const o = x.status.observed, c = o.floodCategory || "not_defined", fl = riverInfo[x.lid] || {};
-      const fs = fl.minor && fl.minor.stage > -999 ? fl.minor.stage : null, as = fl.action && fl.action.stage > -999 ? fl.action.stage : null;
-      const ref = fs != null ? `flood stage ${fs} ft${o.primary != null ? " (" + (o.primary - fs >= 0 ? "+" : "") + (o.primary - fs).toFixed(1) + ")" : ""}` : as != null ? `action stage ${as} ft` : "";
-      return `<a class="rv fc-${esc(c)}" href="https://water.noaa.gov/gauges/${esc(x.lid)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none"><span class="dot"></span>
-        <div style="min-width:0"><div class="nm" style="font-size:13px">${esc(x.name)}</div><div class="sub"><span class="cat">${esc(catLabel[c] || c)}</span>${ref ? " · " + esc(ref) : ""} · ${esc(o.validTime ? ago(new Date(o.validTime)) : "")}</div></div>
-        <div class="v">${(+o.primary).toFixed(2)}<small> ${esc(o.primaryUnit || "ft")}</small></div></a>`;
-    }).join("");
-    const flooding = g.filter((x) => ["minor", "moderate", "major"].includes(x.status.observed.floodCategory)).length;
-    $("riverNote").textContent = flooding ? `${flooding} above flood stage` : "none above flood stage";
-  } catch (e) {
-    $("rivers").innerHTML = `<div class="msg err">River and canal levels could not be loaded right now. Retrying automatically.</div>`;
+  if (riversOk && Date.now() - riversAt < 14 * 60000) return;
+  const lids = String(pick("rivers") || cfg.riverLids.join(",")).split(",").map((x) => x.trim()).filter(Boolean);
+  const res = await Promise.all(lids.map((lid) => getJSON(`${NWPS}/${encodeURIComponent(lid)}`).catch(() => null)));
+  let g = res.filter((x) => x && x.status && x.status.observed && x.status.observed.primary > -999);
+  if (!g.length) {
+    if (riversOk) $("riverNote").textContent = "NOAA feed busy, showing last reading";
+    else $("rivers").innerHTML = `<div class="msg err">River and canal levels could not be loaded right now. Retrying automatically.</div>`;
+    return;
   }
+  g.sort((a, b) => (catRank[a.status.observed.floodCategory] ?? 7) - (catRank[b.status.observed.floodCategory] ?? 7) || a.name.localeCompare(b.name));
+  $("rivers").innerHTML = g.map((x) => {
+    const o = x.status.observed, c = o.floodCategory || "not_defined", fl = (x.flood && x.flood.categories) || {};
+    const fs = fl.minor && fl.minor.stage > -999 ? fl.minor.stage : null, as = fl.action && fl.action.stage > -999 ? fl.action.stage : null;
+    const ref = fs != null ? `flood stage ${fs} ft (${o.primary - fs >= 0 ? "+" : ""}${(o.primary - fs).toFixed(1)})` : as != null ? `action stage ${as} ft` : "";
+    return `<a class="rv fc-${esc(c)}" href="https://water.noaa.gov/gauges/${esc(x.lid)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none"><span class="dot"></span>
+      <div style="min-width:0"><div class="nm" style="font-size:13px">${esc(x.name)}</div><div class="sub"><span class="cat">${esc(catLabel[c] || c)}</span>${ref ? " · " + esc(ref) : ""} · ${esc(o.validTime ? ago(new Date(o.validTime)) : "")}</div></div>
+      <div class="v">${(+o.primary).toFixed(2)}<small> ${esc(o.primaryUnit || "ft")}</small></div></a>`;
+  }).join("");
+  const flooding = g.filter((x) => ["minor", "moderate", "major"].includes(x.status.observed.floodCategory)).length;
+  riversOk = true; riversAt = Date.now();
+  $("riverNote").textContent = flooding ? `${flooding} above flood stage` : "none above flood stage";
 }
 
 // ---------------- Top rain gauges ----------------
@@ -390,7 +393,7 @@ async function load() {
 }
 // Self-update: GitHub Pages lets browsers cache this page for up to 10 minutes, and embedded panels
 // can sit open for days. On each refresh, check whether a newer version was published and reload if so.
-const BUILD = "2026-11-20d";
+const BUILD = "2026-11-20f";
 async function checkVersion() {
   try {
     const t = await (await fetch(location.pathname + "?v=" + Date.now(), { cache: "no-store" })).text();
