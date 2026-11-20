@@ -69,4 +69,7 @@ circles.html    Circle zone tool (map page, built from src/circles.js). Type a d
                 https://dacfrpc.github.io/eoc-live-radar/oauth-callback.html (sign-in window). Undo removes only zones
                 drawn in this session; "Clear all (everyone)" deletes every zone in the layer. The page re-reads the
                 layer every 30 s.
+                Public apps: the page opens locked behind an "EOC staff sign in" button and never prompts the
+                public on load. Keep the editable layer shared with the EOC group only, and show circles to the
+                public through a read-only hosted view layer of it.
                 Without circlesLayerUrl, zones stay only in this page, in this browser.

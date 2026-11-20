@@ -1,0 +1,1 @@
+import{n as e}from"./OperatorDistance-BU-tnsWj.js";import{k as t}from"./units-BFZKfH7f.js";import{a as n,i as r}from"./apiConverter-xdwJl6bV.js";import"./deprecatedOperator-C_KSnnAr.js";var i=new e;function a(e,a,o={}){let{unit:s}=o,c=i.execute(r(e),r(a),null);if(c&&s){let r=n(e);c=t(c,r,s)}return c}i.supportsCurves();export{a as t};

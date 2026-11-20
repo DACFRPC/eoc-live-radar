@@ -205,6 +205,7 @@ function ringAttrs(z, d) {
 function zoomTo(z) { view.goTo(circleFor(z, z.dists[z.dists.length - 1]).extent.clone().expand(1.25)).catch(() => {}); }
 
 function addZone(lon, lat, place) {
+  if (!staffOk) { setLocked(true, "Sign in to draw."); return false; }
   const dists = readDistances();
   if (!dists) { $("dist").focus(); return false; }
   const z = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), lon, lat, dists, unit,
@@ -339,11 +340,37 @@ if (embedded) {
 
 // ---- Shared layer: every zone is written to the hosted layer, so it shows on the EOC map (and for everyone).
 let shared = null;
+// Staff gate: with a shared layer, nothing can be drawn until an ArcGIS Online user signs in.
+// The public never gets a sign-in prompt on page load; they only see the "EOC staff sign in" button.
+const portalUrl = (cfg.circlesPortalUrl || "https://www.arcgis.com").replace(/\/+$/, "");
+let staffOk = !layerUrl;
+function setLocked(locked, note) {
+  $("panel").classList.toggle("locked", locked);
+  $("gateNote").textContent = note || "";
+}
+async function signIn(interactive) {
+  try {
+    const sharing = portalUrl + "/sharing";
+    if (interactive) await esriId.getCredential(sharing, { oAuthPopupConfirmation: false });
+    else await esriId.checkSignInStatus(sharing);
+    staffOk = true; setLocked(false); startShared();
+  } catch (err) {
+    if (interactive) setLocked(true, "Sign-in did not finish. If no window opened, allow pop-ups for this site and try again.");
+  }
+}
 if (layerUrl) {
   if (cfg.circlesAppId) {
-    esriId.registerOAuthInfos([new OAuthInfo({ appId: cfg.circlesAppId, popup: true,
+    esriId.registerOAuthInfos([new OAuthInfo({ appId: cfg.circlesAppId, portalUrl, popup: true,
       popupCallbackUrl: new URL("oauth-callback.html", location.href).href })]);
   }
+  setLocked(true);
+  $("signin").onclick = () => signIn(true);
+  signIn(false); // already signed in from an earlier visit: unlock without a prompt
+}
+if (q.get("selftest") === "1") window.__circleTest = { unlock() { staffOk = true; setLocked(false); startShared(); } }; // used by automated tests only
+
+function startShared() {
+  if (shared || !layerUrl) return;
   const fl = new FeatureLayer({ url: layerUrl, outFields: ["*"] });
   const fieldMap = {}; // lower-case name -> real field name (publishing can change case)
   const toZones = (feats) => {
@@ -413,7 +440,7 @@ if (layerUrl) {
     refresh(); setInterval(refresh, 30000);
   }).catch((err) => {
     console.warn("layer load failed", err);
-    say("Could not open the shared circle layer. Check the URL in config.js and that you can sign in.", "err");
+    say("Could not open the shared circle layer. Check the URL in config.js and that your account can see it.", "err");
   });
 }
 
